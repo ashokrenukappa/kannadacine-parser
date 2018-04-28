@@ -15,15 +15,17 @@ class KannadaCineParser {
 
     static class MovieInfo{
         String title
+        int recency
         List videoUrls
 
-        MovieInfo(String title, List videoUrls) {
+        MovieInfo(String title, List videoUrls, int recency) {
             this.title = title
             this.videoUrls = videoUrls
+            this.recency = recency
         }
     }
     
-    MovieInfo extractMovieVideoUrls(String url){
+    MovieInfo extractMovieVideoUrls(String url, int recency){
         def http = new HTTPBuilder(url)
         def html = http.get([:])
 
@@ -41,7 +43,7 @@ class KannadaCineParser {
 
         List<String> video1Urls = extractAttributeValues(video1VideoNodes,"src")
 
-        new MovieInfo(movieTitle, video1Urls)
+        new MovieInfo(movieTitle, video1Urls, recency)
     }
 
 
@@ -136,6 +138,7 @@ class KannadaCineParser {
         List<MovieInfo> movieInfoList = []
 
         int i = 1
+        int itemCount = 1
         try {
             while (true){
                 String pageUrl = "http://www.kannadacine.com/page/${i}/"
@@ -144,16 +147,15 @@ class KannadaCineParser {
                 List<String> moviePageUrls = kcParser.extractMoviePageUrls("http://www.kannadacine.com/page/${i}/")
 
                 for(String url:moviePageUrls){
-                    movieInfoList.add(kcParser.extractMovieVideoUrls(url))
+                    movieInfoList.add(kcParser.extractMovieVideoUrls(url, itemCount++ ))
                 }
                 i++
                 log.info("Completed page: {} , took: {} secs.", pageUrl, (System.currentTimeMillis() - start)/ 1000)
-
             }
         } catch (HttpResponseException exception) {
             println("Terminating at page ${i} error : ${exception.getMessage()}")
         }
-
+        log.info("Found total: {} movie / videos.", itemCount)
         kcParser.writeHtml(movieInfoList)
 
     }
